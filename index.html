@@ -1,0 +1,230 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Newproj by navinderjsingh</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-dark.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="without-description">
+        <h1>Newproj</h1>
+        <p></p>
+        <p class="view"><a href="https://github.com/navinderjsingh/newProj">View the Project on GitHub <small>navinderjsingh/newProj</small></a></p>
+        <ul>
+          <li><a href="https://github.com/navinderjsingh/newProj/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/navinderjsingh/newProj/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/navinderjsingh/newProj">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <hr>
+
+<p>title: 'Saigas on the brink: multi-disciplinary analysis of the factors influencing
+  a mass die-off event'
+author: "Many et al. with loads of work from Sarah"
+date: "14 October 2016"</p>
+
+<h2>
+<a id="output-html_document" class="anchor" href="#output-html_document" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>output: html_document</h2>
+
+<h3>
+<a id="saiga-antelope-calving-sites-die-off-sites-analyses" class="anchor" href="#saiga-antelope-calving-sites-die-off-sites-analyses" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Saiga antelope calving sites/ Die-off sites analyses</h3>
+
+<ul>
+<li>1. Question - To identify the variables separating the Saiga die-off sites from random sites</li>
+</ul>
+
+<div class="highlight highlight-source-r"><pre>library(<span class="pl-smi">raster</span>)
+library(<span class="pl-smi">sp</span>)
+library(<span class="pl-smi">ggmap</span>)
+library(<span class="pl-smi">FactoMineR</span>)
+library(<span class="pl-smi">reshape2</span>)
+library(<span class="pl-smi">rstan</span>)
+library(<span class="pl-smi">brms</span>)
+library(<span class="pl-smi">corrplot</span>)
+library(<span class="pl-smi">shinystan</span>)</pre></div>
+
+<p>Reading Dataset file</p>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-smi">dataset</span><span class="pl-k">&lt;-</span>read.csv(<span class="pl-s"><span class="pl-pds">"</span>DATA_WIDE_79_16_MED.csv<span class="pl-pds">"</span></span>,<span class="pl-v">h</span><span class="pl-k">=</span><span class="pl-c1">T</span>)
+<span class="pl-c">#names(dataset)</span>
+<span class="pl-smi">calving</span><span class="pl-k">&lt;-</span>SpatialPointsDataFrame(<span class="pl-smi">dataset</span>[,c(<span class="pl-s"><span class="pl-pds">"</span>LON<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>LAT<span class="pl-pds">"</span></span>)],<span class="pl-v">data</span><span class="pl-k">=</span><span class="pl-smi">dataset</span>)
+<span class="pl-smi">calvingbox</span><span class="pl-k">&lt;-</span>bbox(<span class="pl-smi">calving</span>)
+<span class="pl-smi">cmap</span><span class="pl-k">&lt;-</span>get_map(<span class="pl-smi">calvingbox</span>,<span class="pl-v">zoom</span><span class="pl-k">=</span><span class="pl-c1">6</span>,<span class="pl-v">maptype</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">"</span>terrain<span class="pl-pds">"</span></span>)</pre></div>
+
+<h4>
+<a id="locations-of-normal-calving-sites-and-dieoff-sites" class="anchor" href="#locations-of-normal-calving-sites-and-dieoff-sites" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Locations of Normal calving sites and Dieoff sites</h4>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-smi">map1</span><span class="pl-k">&lt;-</span>ggmap(<span class="pl-smi">cmap</span>)<span class="pl-k">+</span>
+geom_point(<span class="pl-v">data</span><span class="pl-k">=</span><span class="pl-smi">dataset</span>,aes(<span class="pl-v">x</span><span class="pl-k">=</span><span class="pl-smi">LON</span>,<span class="pl-v">y</span><span class="pl-k">=</span><span class="pl-smi">LAT</span>,<span class="pl-v">color</span><span class="pl-k">=</span><span class="pl-smi">Dieoff</span>,<span class="pl-v">size</span><span class="pl-k">=</span><span class="pl-c1">2</span>))<span class="pl-k">+</span>
+ggtitle(<span class="pl-s"><span class="pl-pds">"</span>Calving sites<span class="pl-pds">"</span></span>)<span class="pl-k">+</span>theme_bw()
+<span class="pl-smi">map1</span></pre></div>
+
+<p>Converting variables</p>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-smi">dataset</span><span class="pl-k">$</span><span class="pl-smi">Year</span><span class="pl-k">&lt;-</span>as.factor(<span class="pl-smi">dataset</span><span class="pl-k">$</span><span class="pl-smi">Year</span>)
+<span class="pl-smi">dataset</span><span class="pl-k">$</span><span class="pl-smi">Dieoff</span><span class="pl-k">&lt;-</span>as.numeric(<span class="pl-smi">dataset</span><span class="pl-k">$</span><span class="pl-smi">Dieoff</span>)</pre></div>
+
+<h4>
+<a id="using-the-bayesian-hierarchical-modelling" class="anchor" href="#using-the-bayesian-hierarchical-modelling" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Using the Bayesian Hierarchical Modelling</h4>
+
+<h5>
+<a id="sarahs-comments" class="anchor" href="#sarahs-comments" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Sarah's comments</h5>
+
+<p>I think it is best to start with mean maximum daily humidity dewpoint over 5 days to onset/9 May, mean minimum daily temperatures over 5 days to onset, total precipitation  over 5 days to onset and number of days with precipitation over 10 days to onset.  Some of these are related and will be eventually removed, but they are the ones which look important and fit in with our hypotheses.</p>
+
+<h4>
+<a id="selected-variables-are" class="anchor" href="#selected-variables-are" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Selected variables are</h4>
+
+<ul>
+<li>1. mean maximum daily humidity dewpoint over 5 days to onset/9 May, </li>
+<li>2. mean minimum daily temperatures over 5 days to onset, </li>
+<li>3. total precipitation  over 5 days to onset and </li>
+<li>4. number of days with precipitation over 10 days to onset</li>
+</ul>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-c">#mod.hum.temp&lt;-brm(formula=Dieoff ~ AVRHUMID_MAX5D+AVOFMINTEMP_5D+GCPP_PRECIP_5D+PRECIPDAYS_10D+LAT+LON+(1|Year), data = dataset, </span>
+<span class="pl-c">#                  family = bernoulli(link = "logit"), </span>
+<span class="pl-c">#                  autocor=cor_arma(formula = ~Year),</span>
+<span class="pl-c">#    prior = c(set_prior("normal(0,10)", class = "b")), </span>
+<span class="pl-c">#    warmup = 1000, iter = 2000, chains = 4,</span>
+<span class="pl-c">#    control = list(adapt_delta = 0.95),verbose=FALSE)</span>
+<span class="pl-c">#summary(mod.hum.temp)</span>
+<span class="pl-c">#plot(mod.hum.temp)</span>
+<span class="pl-c">#launch_shiny(mod.hum.temp) </span>
+<span class="pl-c">#marginal_effects(mod.hum.temp)</span></pre></div>
+
+<p>Model selection using Watanbe's infromation</p>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-c">#WAIC(mod.hum.temp)</span></pre></div>
+
+<h4>
+<a id="results" class="anchor" href="#results" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Results</h4>
+
+<p>So the above analyses (see summary above) hints towards , at die-off sites, <strong>higher mean minimum daily temperatures over 5 days to onset, and higher number of days with precipitation over 10 days to onset</strong>. This is indicated by hgh Estimate values (13.4 and 14.3) for these variables in the model and also that their l-95% and u-95% limits do not overlap 0. The rest of the variables are not really important.</p>
+
+<p>Note that this model <strong>includes the temporal autocorrelation and a random effect of year</strong>. It <strong>accounts for the spatial trend by having LAT and LON variables in the model</strong>, although they dont seem to have a large impact. The <strong>use of strong priors attempts to overcome the issue of perfect separation</strong> that the model forces to sample and resample through the observed values. However, we may try to have <strong>specific priors to the variable of interest</strong> , for e.g. Min Temp. or Precipitation here, and we can then work it out for the variables we select eventually.</p>
+
+<p>The next step is to accomodate the nearest neighbour matrix for the neighbourhood structure to account for spatial autocorrelation and see if the model estimates improve. </p>
+
+<h4>
+<a id="plotting-spatial-locations-of-dieoff-on-google-map" class="anchor" href="#plotting-spatial-locations-of-dieoff-on-google-map" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Plotting spatial locations of Dieoff on google map</h4>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-smi">map2</span><span class="pl-k">&lt;-</span>ggmap(<span class="pl-smi">cmap</span>)<span class="pl-k">+</span>
+geom_point(<span class="pl-v">data</span><span class="pl-k">=</span><span class="pl-smi">dataset</span>,aes(<span class="pl-v">x</span><span class="pl-k">=</span><span class="pl-smi">LON</span>,<span class="pl-v">y</span><span class="pl-k">=</span><span class="pl-smi">LAT</span>),<span class="pl-v">size</span><span class="pl-k">=</span><span class="pl-c1">2</span>)<span class="pl-k">+</span>ggtitle(<span class="pl-s"><span class="pl-pds">"</span>Calving sites<span class="pl-pds">"</span></span>)<span class="pl-k">+</span>
+theme_bw()
+<span class="pl-smi">map2</span><span class="pl-k">+</span>facet_wrap(<span class="pl-k">~</span><span class="pl-smi">Dieoff</span>)</pre></div>
+
+<h5>
+<a id="other-variables-to-test" class="anchor" href="#other-variables-to-test" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Other variables to test</h5>
+
+<p>NDVI anomaly 
+(sd x100)
+    3rd week April
+Precipitation (ERA) Number of days 
+Precipitation (ERA) Total (mm)
+Precipitation (GPCC)    Total (mm)
+Dewpoint temperature    Mean of daily maxima (°C)
+Relative humidity   Maximum (%)
+Relative humidity   Mean of daily maxima (%)
+Snow anomaly
+(1- probability of snow, multiplied x 10000)
+    1st week April
+    2nd  week April
+    4th week March
+Snow cover days     Number of days from 1 Jan 
+Soil water  Maximum of daily means
+Temperature Average daily mean (°C)
+Temperature Average daily maximum (°C)
+Temperature Average daily minimum (°C)
+Temperature Minimum (°C)
+Temperature difference  Total variation over 5 days
+Temperature difference  Difference in daily minima
+Windgust    Average daily m/s</p>
+
+<h4>
+<a id="selecting-variables" class="anchor" href="#selecting-variables" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Selecting variables</h4>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-smi">seldat</span><span class="pl-k">&lt;-</span><span class="pl-smi">dataset</span>[,c(<span class="pl-s"><span class="pl-pds">"</span>Dieoff<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>LAT<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>LON<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>Year<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>AVRHUMID_MAX5D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>MAXRHUMID_MEAN5D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>AVOFMINTEMP_5D_STGN<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>DEWPAVMX_3D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>MINTEMP_0D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>MINTEMP_5D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>TOTPRECIP_5D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>TOTPRECIP_10D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>PRECIPDAYS_5D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>PRECIPDAYS_10D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>MINTEMP_5D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>AVOFMINTEMP_10D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>AVOFMINTEMP_5D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>DEWPAVMX_5D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>MAXRHUMID_MEAN10D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>MAXRHUMID_MEAN5D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>DIFFTEMP_3DAY<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>SNOWANOM_MEAN_APRW1<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>NDVIANOM_MEAN_APRW3<span class="pl-pds">"</span></span>)]</pre></div>
+
+<h4>
+<a id="conducting-a-pca" class="anchor" href="#conducting-a-pca" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Conducting a PCA</h4>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-smi">seldat</span><span class="pl-k">&lt;-</span><span class="pl-smi">seldat</span>[complete.cases(<span class="pl-smi">seldat</span>),]
+<span class="pl-smi">seldat2</span><span class="pl-k">&lt;-</span><span class="pl-smi">seldat</span>[c(<span class="pl-s"><span class="pl-pds">"</span>AVRHUMID_MAX5D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>DEWPAVMX_3D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>TOTPRECIP_5D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>MINTEMP_5D<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>DIFFTEMP_3DAY<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>SNOWANOM_MEAN_APRW1<span class="pl-pds">"</span></span>)]
+<span class="pl-smi">all.pca</span><span class="pl-k">&lt;-</span>PCA(<span class="pl-smi">seldat2</span>)
+<span class="pl-c">#all.pca&lt;-PCA(seldat[,c(5:23)])</span>
+<span class="pl-smi">all.pca</span><span class="pl-k">$</span><span class="pl-smi">var</span><span class="pl-k">$</span><span class="pl-smi">contrib</span>
+<span class="pl-smi">all.pca</span><span class="pl-k">$</span><span class="pl-smi">eig</span></pre></div>
+
+<h4>
+<a id="plotting-data" class="anchor" href="#plotting-data" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Plotting data</h4>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-smi">seldat</span><span class="pl-k">$</span><span class="pl-smi">Dieoff</span><span class="pl-k">&lt;-</span>as.factor(<span class="pl-smi">seldat</span><span class="pl-k">$</span><span class="pl-smi">Dieoff</span>)
+<span class="pl-smi">df.m</span> <span class="pl-k">&lt;-</span> melt(<span class="pl-smi">seldat</span>, <span class="pl-v">id.var</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>Dieoff<span class="pl-pds">"</span></span>)
+<span class="pl-smi">df.m</span><span class="pl-k">$</span><span class="pl-smi">value</span><span class="pl-k">&lt;-</span>as.numeric(<span class="pl-smi">df.m</span><span class="pl-k">$</span><span class="pl-smi">value</span>)</pre></div>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-smi">p</span> <span class="pl-k">&lt;-</span> ggplot(<span class="pl-v">data</span> <span class="pl-k">=</span> <span class="pl-smi">df.m</span>, aes(<span class="pl-v">x</span><span class="pl-k">=</span><span class="pl-smi">variable</span>, <span class="pl-v">y</span><span class="pl-k">=</span><span class="pl-smi">value</span>)) <span class="pl-k">+</span> 
+             geom_boxplot(aes(<span class="pl-v">fill</span><span class="pl-k">=</span><span class="pl-smi">Dieoff</span>))<span class="pl-k">+</span>
+  theme_bw()
+<span class="pl-smi">p</span> <span class="pl-k">+</span> facet_wrap( <span class="pl-k">~</span> <span class="pl-smi">variable</span>, <span class="pl-v">scales</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">"</span>free<span class="pl-pds">"</span></span>)</pre></div>
+
+<h4>
+<a id="correlation-matrix" class="anchor" href="#correlation-matrix" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Correlation Matrix</h4>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-c">#ctab &lt;- cor(seldat[,c(5:23)])</span>
+<span class="pl-smi">ctab2</span> <span class="pl-k">&lt;-</span> cor(<span class="pl-smi">seldat2</span>)
+<span class="pl-c">#round(ctab, 2)</span>
+corrplot(<span class="pl-smi">ctab2</span>, <span class="pl-v">type</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>upper<span class="pl-pds">"</span></span>, <span class="pl-v">order</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>hclust<span class="pl-pds">"</span></span>, 
+         <span class="pl-v">tl.col</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>black<span class="pl-pds">"</span></span>, <span class="pl-v">tl.srt</span> <span class="pl-k">=</span> <span class="pl-c1">45</span>)</pre></div>
+
+<h4>
+<a id="constructing-a-full-model" class="anchor" href="#constructing-a-full-model" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Constructing a full model</h4>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-smi">mod.full</span><span class="pl-k">&lt;-</span>brm(<span class="pl-v">formula</span><span class="pl-k">=</span><span class="pl-smi">Dieoff</span> <span class="pl-k">~</span> 
+<span class="pl-c">#                AVRHUMID_MAX5D+</span>
+                <span class="pl-smi">MAXRHUMID_MEAN5D</span><span class="pl-k">+</span>
+<span class="pl-c">#                AVOFMINTEMP_5D_STGN+</span>
+                <span class="pl-smi">DEWPAVMX_3D</span><span class="pl-k">+</span>
+<span class="pl-c">#                MINTEMP_0D+</span>
+<span class="pl-c">#                MINTEMP_5D+</span>
+                <span class="pl-smi">TOTPRECIP_5D</span><span class="pl-k">+</span>
+<span class="pl-c">#                TOTPRECIP_10D+</span>
+<span class="pl-c">#                PRECIPDAYS_5D+</span>
+<span class="pl-c">#                PRECIPDAYS_10D+</span>
+                <span class="pl-smi">MINTEMP_5D</span><span class="pl-k">+</span>
+<span class="pl-c">#                AVOFMINTEMP_10D+</span>
+<span class="pl-c">#                AVOFMINTEMP_5D+</span>
+<span class="pl-c">#                DEWPAVMX_5D+</span>
+<span class="pl-c">#                MAXRHUMID_MEAN10D+</span>
+<span class="pl-c">#                MAXRHUMID_MEAN5D+</span>
+                <span class="pl-smi">DIFFTEMP_3DAY</span><span class="pl-k">+</span>
+                <span class="pl-smi">SNOWANOM_MEAN_APRW1</span><span class="pl-k">+</span>
+<span class="pl-c">#                NDVIANOM_MEAN_APRW3+</span>
+                <span class="pl-smi">LAT</span><span class="pl-k">+</span><span class="pl-smi">LON</span><span class="pl-k">+</span>(<span class="pl-c1">1</span><span class="pl-k">|</span><span class="pl-smi">Year</span>), <span class="pl-v">data</span> <span class="pl-k">=</span> <span class="pl-smi">seldat</span>, 
+                  <span class="pl-v">family</span> <span class="pl-k">=</span> bernoulli(<span class="pl-v">link</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>logit<span class="pl-pds">"</span></span>), 
+                  <span class="pl-v">autocor</span><span class="pl-k">=</span>cor_arma(<span class="pl-v">formula</span> <span class="pl-k">=</span> <span class="pl-k">~</span><span class="pl-smi">Year</span>),
+    <span class="pl-v">prior</span> <span class="pl-k">=</span> c(set_prior(<span class="pl-s"><span class="pl-pds">"</span>normal(0,10)<span class="pl-pds">"</span></span>, <span class="pl-v">class</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>b<span class="pl-pds">"</span></span>)), 
+    <span class="pl-v">warmup</span> <span class="pl-k">=</span> <span class="pl-c1">1000</span>, <span class="pl-v">iter</span> <span class="pl-k">=</span> <span class="pl-c1">2000</span>, <span class="pl-v">chains</span> <span class="pl-k">=</span> <span class="pl-c1">4</span>,
+    <span class="pl-v">control</span> <span class="pl-k">=</span> <span class="pl-k">list</span>(<span class="pl-v">adapt_delta</span> <span class="pl-k">=</span> <span class="pl-c1">0.95</span>))
+summary(<span class="pl-smi">mod.full</span>)</pre></div>
+      </section>
+    </div>
+    <footer>
+      <p>Project maintained by <a href="https://github.com/navinderjsingh">navinderjsingh</a></p>
+      <p>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></p>
+    </footer>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+    
+  </body>
+</html>
